@@ -97,7 +97,7 @@ def main():
     while True:
         try:
             tokens = check_tokens()
-            if tokens == False:
+            if tokens is False:
                 raise Exception('Отсутствует token')
             response = get_api_answer(current_timestamp)
             check = check_response(response)
