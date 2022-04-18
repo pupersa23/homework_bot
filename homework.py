@@ -31,10 +31,12 @@ HOMEWORK_STATUSES = {
 
 
 def send_message(bot, message):
+    """Отправка сообщение в чатбот."""
     return bot.send_message(TELEGRAM_CHAT_ID, message)
 
 
 def get_api_answer(current_timestamp):
+    """Запрос данных с сервера практикума."""
     timestamp = current_timestamp or int(time.time())
     params = {'from_date': timestamp}
     response = requests.get(ENDPOINT, headers=HEADERS, params=params)
@@ -44,6 +46,7 @@ def get_api_answer(current_timestamp):
 
 
 def check_response(response):
+    """Проверка корекктности переданных данных сервером."""
     if type(response) is not dict:
         raise 'Response не формата  dict'
     elif len(response) == 0:
@@ -57,6 +60,7 @@ def check_response(response):
 
 
 def parse_status(homework):
+    """Определние типа готовности домашней работы."""
     homework_name = homework['homework_name']
     homework_status = homework['status']
 
@@ -78,6 +82,7 @@ def parse_status(homework):
 
 
 def check_tokens():
+    """Проверка на наличие токенов."""
     if not PRACTICUM_TOKEN:
         return False
     elif not TELEGRAM_TOKEN:
@@ -89,7 +94,7 @@ def check_tokens():
 
 
 def main():
-
+    """Основная работа бота."""
     logging.debug('Бот запущен')
     bot = Bot(token=TELEGRAM_TOKEN)
     current_timestamp = int(time.time())
