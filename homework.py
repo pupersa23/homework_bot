@@ -1,3 +1,4 @@
+import json
 import logging
 import os
 import sys
@@ -5,7 +6,6 @@ import time
 from http import HTTPStatus
 
 import requests
-import json
 from dotenv import load_dotenv
 from telegram import Bot
 
@@ -43,6 +43,8 @@ def get_api_answer(current_timestamp):
     params = {'from_date': timestamp}
     try:
         response = requests.get(ENDPOINT, headers=HEADERS, params=params)
+        if response.status_code != HTTPStatus.OK:
+            raise Exception('Неверный статус код')
     except requests.exceptions.RequestException as e:
         logging.error(f'Сервер Яндекс.Практикум вернул ошибку: {e}')
     try:
