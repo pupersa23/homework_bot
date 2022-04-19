@@ -2,8 +2,10 @@ import logging
 import os
 import sys
 import time
+from http import HTTPStatus
 
 import requests
+import json
 from dotenv import load_dotenv
 from telegram import Bot
 
@@ -39,22 +41,26 @@ def get_api_answer(current_timestamp):
     """Запрос данных с сервера практикума."""
     timestamp = current_timestamp or int(time.time())
     params = {'from_date': timestamp}
-    response = requests.get(ENDPOINT, headers=HEADERS, params=params)
-    if response.status_code != 200:
-        raise 'Неверный статус код'
-    return response.json()
+    try:
+        response = requests.get(ENDPOINT, headers=HEADERS, params=params)
+    except requests.exceptions.RequestException as e:
+        logging.error(f'Сервер Яндекс.Практикум вернул ошибку: {e}')
+    try:
+        return response.json()
+    except json.JSONDecodeError:
+        logging.error('Сервер вернул невалидный json')
 
 
 def check_response(response):
     """Проверка корекктности переданных данных сервером."""
     if type(response) is not dict:
-        raise 'Response не формата  dict'
+        raise TypeError('Response не формата  dict')
     elif len(response) == 0:
-        raise 'Response пустой'
+        raise Exception('Response пустой')
     elif 'homeworks' not in response.keys():
-        raise 'Нет ключа в response'
+        raise Exception('Нет ключа в response')
     elif type(response['homeworks']) is not list:
-        raise 'Тип homeworks не list'
+        raise Exception('Тип homeworks не list')
     else:
         return response['homeworks']
 
@@ -95,31 +101,28 @@ def check_tokens():
 
 def main():
     """Основная работа бота."""
-    logging.debug('Бот запущен')
+    logging.info('Бот запущен')
     bot = Bot(token=TELEGRAM_TOKEN)
-    current_timestamp = int(time.time())
+    timestamp = 30
 
     while True:
         try:
-            tokens = check_tokens()
-            if tokens is False:
-                raise Exception('Отсутствует token')
-            response = get_api_answer(current_timestamp)
-            check = check_response(response)
-            if check != response['homeworks']:
-                raise Exception('Ошибка ответа сервера')
-
+            if check_tokens() is True:
+                response = get_api_answer(timestamp)
+                check_response(response)
+                parse_status(response['homeworks'][0])
         except Exception as error:
             message = f'Сбой в работе программы: {error}'
             send_message(bot, message)
             time.sleep(RETRY_TIME)
         else:
+            current_timestamp = int(time.time())
             response = get_api_answer(current_timestamp)
             if len(response['homeworks']) > 0:
                 homework = response['homeworks'][0]
-                send_message(parse_status(homework))
+                send_message(bot, parse_status(homework))
                 logging.info('Сообщение отправлено')
-            time.sleep(RETRY_TIME)
+                time.sleep(RETRY_TIME)
 
 
 if __name__ == '__main__':
