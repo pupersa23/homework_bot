@@ -118,15 +118,12 @@ def main():
                     homework = response['homeworks'][0]
                     send_message(bot, parse_status(homework))
                     logger.info('Сообщение отправлено')
-                time.sleep(RETRY_TIME)
         except Exception as error:
             current_timestamp = current_timestamp
             message = f'Сбой в работе программы: {error}'
             send_message(bot, message)
-            time.sleep(RETRY_TIME)
         else:
             current_timestamp = int(time.time())
-            send_message(bot, message)
         finally:
             time.sleep(RETRY_TIME)
 
