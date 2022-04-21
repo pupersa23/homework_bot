@@ -7,7 +7,7 @@ from http import HTTPStatus
 
 import requests
 from dotenv import load_dotenv
-from telegram import Bot
+from telegram import Bot, TelegramError
 
 logging.basicConfig(
     level=logging.DEBUG,
@@ -35,7 +35,10 @@ HOMEWORK_STATUSES = {
 
 def send_message(bot, message):
     """Отправка сообщение в чатбот."""
-    return bot.send_message(TELEGRAM_CHAT_ID, message)
+    try:
+        bot.send_message(TELEGRAM_CHAT_ID, message)
+    except TelegramError as e:
+        logger.error(f'Сбой в работе телеги: {e}')
 
 
 def get_api_answer(current_timestamp):
@@ -120,6 +123,11 @@ def main():
             current_timestamp = current_timestamp
             message = f'Сбой в работе программы: {error}'
             send_message(bot, message)
+            time.sleep(RETRY_TIME)
+        else:
+            current_timestamp = int(time.time())
+            send_message(bot, message)
+        finally:
             time.sleep(RETRY_TIME)
 
 
