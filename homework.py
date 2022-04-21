@@ -10,10 +10,11 @@ from dotenv import load_dotenv
 from telegram import Bot
 
 logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s, %(levelname)s, %(message)s',
+    level=logging.DEBUG,
+    format='%(asctime)s, %(name)s, %(levelname)s, %(message)s',
     handlers=[logging.FileHandler('log.txt'),
               logging.StreamHandler(sys.stdout)])
+logger = logging.getLogger(__name__)
 
 load_dotenv()
 
@@ -46,11 +47,11 @@ def get_api_answer(current_timestamp):
         if response.status_code != HTTPStatus.OK:
             raise Exception('Неверный статус код')
     except requests.exceptions.RequestException as e:
-        logging.error(f'Сервер Яндекс.Практикум вернул ошибку: {e}')
+        logger.error(f'Сервер Яндекс.Практикум вернул ошибку: {e}')
     try:
         return response.json()
     except json.JSONDecodeError:
-        logging.error('Сервер вернул невалидный json')
+        logger.error('Сервер вернул невалидный json')
 
 
 def check_response(response):
@@ -59,7 +60,7 @@ def check_response(response):
         raise TypeError('Response не формата  dict')
     elif len(response) == 0:
         raise Exception('Response пустой')
-    elif 'homeworks' not in response.keys():
+    elif 'homeworks' not in response:
         raise Exception('Нет ключа в response')
     elif type(response['homeworks']) is not list:
         raise Exception('Тип homeworks не list')
@@ -69,23 +70,22 @@ def check_response(response):
 
 def parse_status(homework):
     """Определние типа готовности домашней работы."""
-    homework_name = homework['homework_name']
+    try:
+        homework_name = homework['homework_name']
+    except KeyError:
+        logger.error('Неверный ответ сервера')
+
     homework_status = homework['status']
 
     if ((homework_status is None) or (
-            homework_status == '')) or ((
-            homework_status != 'approved') and (
-            homework_status != 'rejected')):
-        raise Exception(f'Статус работы некорректен: {homework_status}')
+            homework_status == '')) or (
+                (homework_status not in HOMEWORK_STATUSES)):
+        raise KeyError(f'Статус работы некорректен: {homework_status}')
 
     verdict = ''
 
-    if homework_status == 'approved':
-        verdict = HOMEWORK_STATUSES['approved']
-    elif homework_status == 'reviewing':
-        verdict = HOMEWORK_STATUSES['reviewing']
-    elif homework_status == 'rejected':
-        verdict = HOMEWORK_STATUSES['rejected']
+    if homework_status in HOMEWORK_STATUSES:
+        verdict = HOMEWORK_STATUSES[homework_status]
     return f'Изменился статус проверки работы "{homework_name}". {verdict}'
 
 
@@ -103,28 +103,24 @@ def check_tokens():
 
 def main():
     """Основная работа бота."""
-    logging.info('Бот запущен')
+    logger.info('Бот запущен')
     bot = Bot(token=TELEGRAM_TOKEN)
-    timestamp = 30
+    current_timestamp = int(time.time())
 
     while True:
         try:
-            if check_tokens() is True:
-                response = get_api_answer(timestamp)
-                check_response(response)
-                parse_status(response['homeworks'][0])
+            if check_tokens():
+                response = get_api_answer(current_timestamp)
+                if len(response['homeworks']) > 0:
+                    homework = response['homeworks'][0]
+                    send_message(bot, parse_status(homework))
+                    logger.info('Сообщение отправлено')
+                time.sleep(RETRY_TIME)
         except Exception as error:
+            current_timestamp = current_timestamp
             message = f'Сбой в работе программы: {error}'
             send_message(bot, message)
             time.sleep(RETRY_TIME)
-        else:
-            current_timestamp = int(time.time())
-            response = get_api_answer(current_timestamp)
-            if len(response['homeworks']) > 0:
-                homework = response['homeworks'][0]
-                send_message(bot, parse_status(homework))
-                logging.info('Сообщение отправлено')
-                time.sleep(RETRY_TIME)
 
 
 if __name__ == '__main__':
