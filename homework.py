@@ -39,6 +39,7 @@ def send_message(bot, message):
         bot.send_message(TELEGRAM_CHAT_ID, message)
     except TelegramError as e:
         logger.error(f'Сбой в работе телеги: {e}')
+        raise
 
 
 def get_api_answer(current_timestamp):
@@ -51,10 +52,12 @@ def get_api_answer(current_timestamp):
             raise Exception('Неверный статус код')
     except requests.exceptions.RequestException as e:
         logger.error(f'Сервер Яндекс.Практикум вернул ошибку: {e}')
+        raise
     try:
         return response.json()
     except json.JSONDecodeError:
         logger.error('Сервер вернул невалидный json')
+        raise
 
 
 def check_response(response):
@@ -77,6 +80,7 @@ def parse_status(homework):
         homework_name = homework['homework_name']
     except KeyError:
         logger.error('Неверный ответ сервера')
+        raise
 
     homework_status = homework['status']
 
