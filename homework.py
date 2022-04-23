@@ -118,9 +118,10 @@ def main():
         try:
             if check_tokens():
                 response = get_api_answer(current_timestamp)
-                if len(response['homeworks']) > 0:
-                    homework = response['homeworks'][0]
-                    send_message(bot, parse_status(homework))
+                homework = check_response(response)
+                if len(homework) > 0:
+                    homeworks = homework[0]
+                    send_message(bot, parse_status(homeworks))
                     logger.info('Сообщение отправлено')
         except Exception as error:
             current_timestamp = current_timestamp
