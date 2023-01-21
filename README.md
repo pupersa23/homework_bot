@@ -5,15 +5,15 @@
 
 # Технологии:
 
-Python 3.9
-python-dotenv 0.19.0
-python-telegram-bot 13.7
+    Python 3.9
+    python-dotenv 0.19.0
+    python-telegram-bot 13.7
 
 ## Как запустить проект:
 
 ### Клонировать репозиторий и перейти в него в командной строке:
 
-    git clone git@github.com:PashkaVRN/homework_bot.git
+    git clone git@github.com:pupersa23/homework_bot.git
     cd homework_bot
 
 ### Cоздать и активировать виртуальное окружение:
